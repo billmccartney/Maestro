@@ -19,6 +19,7 @@ export const AGENT_DISPLAY_NAMES: Record<AgentId, string> = {
 	'claude-code': 'Claude Code',
 	codex: 'Codex',
 	'gemini-cli': 'Gemini CLI',
+	antigravity: 'Antigravity CLI',
 	'qwen3-coder': 'Qwen3 Coder',
 	opencode: 'OpenCode',
 	'factory-droid': 'Factory Droid',
@@ -72,6 +73,7 @@ export const BETA_AGENTS: ReadonlySet<AgentId> = new Set<AgentId>([
 	'opencode',
 	'factory-droid',
 	'copilot-cli',
+	'antigravity',
 ]);
 
 /**

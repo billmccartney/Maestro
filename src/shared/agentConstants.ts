@@ -20,6 +20,7 @@ export const DEFAULT_CONTEXT_WINDOWS: Partial<Record<AgentId, number>> = {
 	opencode: 128000, // OpenCode (depends on model, 128k is conservative default)
 	'factory-droid': 200000, // Factory Droid (varies by model, defaults to Claude Opus)
 	'copilot-cli': 200000, // Copilot-CLI (varies by model, defaults to Claude Sonnet)
+	antigravity: 1048576, // Antigravity CLI drives Gemini 3.x models (1M token window)
 	terminal: 0, // Terminal has no context window
 };
 

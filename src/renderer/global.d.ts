@@ -1961,7 +1961,9 @@ interface MaestroAPI {
 				groupId?: string;
 			}) => void
 		) => () => void;
-		onGlobalHotkeyRegistrationFailed: (callback: (keys: string[]) => void) => () => void;
+		onGlobalHotkeyRegistrationFailed: (
+			callback: (status: import('../shared/global-hotkeys').GlobalHotkeyStatus) => void
+		) => () => void;
 	};
 	platform: string;
 	/** Resolved on-disk maestro-cli.js path (dev vs packaged), or null. */

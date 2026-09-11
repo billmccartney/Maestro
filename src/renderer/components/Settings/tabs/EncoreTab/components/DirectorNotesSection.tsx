@@ -138,13 +138,13 @@ export function DirectorNotesSection({
 								onCustomPathBlur={directorNotesAgentState.persistCustomConfig}
 								customArgs={ac.customArgs}
 								onCustomArgsChange={ac.setCustomArgs}
-								onCustomArgsBlur={directorNotesAgentState.persistCustomConfig}
+								onCustomArgsBlur={() => directorNotesAgentState.persistCustomConfig()}
 								customEnvVars={ac.customEnvVars}
 								onEnvVarKeyChange={directorNotesAgentState.handleEnvVarKeyChange}
 								onEnvVarValueChange={directorNotesAgentState.handleEnvVarValueChange}
 								onEnvVarRemove={directorNotesAgentState.handleEnvVarRemove}
 								onEnvVarAdd={directorNotesAgentState.handleEnvVarAdd}
-								onEnvVarsBlur={directorNotesAgentState.persistCustomConfig}
+								onEnvVarsBlur={() => directorNotesAgentState.persistCustomConfig()}
 								agentConfig={ac.agentConfig}
 								onConfigChange={directorNotesAgentState.handleConfigChange}
 								onConfigBlur={directorNotesAgentState.handleConfigBlur}

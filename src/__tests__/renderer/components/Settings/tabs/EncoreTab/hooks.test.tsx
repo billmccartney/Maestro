@@ -459,6 +459,42 @@ describe('EncoreTab hooks', () => {
 			});
 		});
 
+		it('ignores a blur event handed to persistCustomConfig and keeps the path from state', () => {
+			// AgentConfigPanel binds the args/env-var blur callbacks straight to
+			// `onBlur`, so React calls them with the event. Only a string may stand
+			// in for the path; anything else has to fall back to the hook's state,
+			// or the payload carries an un-cloneable object and the IPC write fails.
+			const setDirectorNotesSettings = vi.fn();
+			vi.mocked(useAgentConfiguration).mockReturnValue(
+				makeAgentConfiguration({
+					customPath: '/custom/claude',
+					customArgs: '--add-dir /home/me/.config/maestro/history',
+					customEnvVars: {},
+				})
+			);
+			const { result } = renderHook(() =>
+				useDirectorNotesAgentState({
+					isOpen: true,
+					directorNotesEnabled: true,
+					directorNotesSettings,
+					setDirectorNotesSettings,
+				})
+			);
+
+			const blurEvent = { type: 'blur', target: {} } as unknown as string;
+			act(() => {
+				result.current.persistCustomConfig(blurEvent);
+			});
+
+			expect(setDirectorNotesSettings).toHaveBeenCalledWith({
+				provider: 'claude-code',
+				defaultLookbackDays: 7,
+				customPath: '/custom/claude',
+				customArgs: '--add-dir /home/me/.config/maestro/history',
+				customEnvVars: undefined,
+			});
+		});
+
 		it('wires env var and agent config callbacks to the shared configuration hook', async () => {
 			const setCustomEnvVars = vi.fn();
 			const setAgentConfig = vi.fn();

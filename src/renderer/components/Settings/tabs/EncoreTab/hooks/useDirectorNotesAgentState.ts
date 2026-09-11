@@ -53,13 +53,18 @@ export function useDirectorNotesAgentState({
 	// `pathValue` is for the path chooser specifically: it calls this in the
 	// same handler as the change that sets customPath, so reading
 	// agentConfiguration.customPath back out of this closure would still see
-	// the path from before that update landed. The args/env-var blur paths call
-	// this with no argument, unaffected, and keep reading current state as
-	// before.
+	// the path from before that update landed.
+	//
+	// Only a STRING counts as a path. The args and env-var inputs bind this
+	// straight to `onBlur`, so React hands it the blur event; treating that as
+	// the path put a non-serializable object into the settings payload, the IPC
+	// write threw, and Custom Args survived only in memory until the next
+	// settings reload dropped it.
 	const persistCustomConfig = (pathValue?: string) => {
+		const chosenPath = typeof pathValue === 'string' ? pathValue : agentConfiguration.customPath;
 		setDirectorNotesSettings({
 			...directorNotesSettings,
-			customPath: (pathValue ?? agentConfiguration.customPath) || undefined,
+			customPath: chosenPath || undefined,
 			customArgs: agentConfiguration.customArgs || undefined,
 			customEnvVars:
 				Object.keys(agentConfiguration.customEnvVars).length > 0

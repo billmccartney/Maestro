@@ -23,6 +23,15 @@ vi.mock('../../../../../../renderer/components/shared/AgentConfigPanel', () => (
 		<div data-testid="agent-config-panel">
 			<span data-testid="agent-config-agent-id">{props.agent?.id}</span>
 			<button data-testid="agent-config-path" onClick={() => props.onCustomPathBlur()} />
+			{/* The real panel binds these straight to onBlur, so they receive the event. */}
+			<button
+				data-testid="agent-config-args"
+				onClick={() => props.onCustomArgsBlur({ type: 'blur' })}
+			/>
+			<button
+				data-testid="agent-config-env"
+				onClick={() => props.onEnvVarsBlur({ type: 'blur' })}
+			/>
 			<button
 				data-testid="agent-config-model"
 				onClick={() => props.onConfigChange('model', 'opus')}
@@ -355,6 +364,27 @@ describe('EncoreTab section components', () => {
 		expect(screen.getByText('Claude Code Configuration')).toBeInTheDocument();
 		expect(screen.getByText('Customized')).toBeInTheDocument();
 		expect(screen.getByTestId('agent-config-agent-id')).toHaveTextContent('claude-code');
+	});
+
+	it('persists Director Notes custom args and env vars without forwarding the blur event', () => {
+		const expanded = directorState();
+		expanded.agentConfiguration.isConfigExpanded = true;
+		render(
+			<DirectorNotesSection
+				theme={mockTheme}
+				directorNotesSettings={directorNotesSettings}
+				setDirectorNotesSettings={vi.fn()}
+				directorNotesAgentState={expanded}
+			/>
+		);
+
+		fireEvent.click(screen.getByTestId('agent-config-args'));
+		fireEvent.click(screen.getByTestId('agent-config-env'));
+
+		expect(expanded.persistCustomConfig).toHaveBeenCalledTimes(2);
+		// A forwarded event would be read as the custom path and break the IPC write.
+		expect(expanded.persistCustomConfig).toHaveBeenNthCalledWith(1);
+		expect(expanded.persistCustomConfig).toHaveBeenNthCalledWith(2);
 	});
 
 	it('renders the Director Notes default reading-mode toggle and persists changes', () => {

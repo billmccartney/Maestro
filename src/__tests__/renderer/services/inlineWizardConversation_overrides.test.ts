@@ -41,6 +41,7 @@ describe('inlineWizardConversation - Session Overrides', () => {
 				sessionCustomArgs: '--custom-arg',
 				sessionCustomEnvVars: { CUSTOM_VAR: 'value' },
 				sessionCustomModel: 'custom-model-id',
+				sessionCustomEffort: 'high',
 			};
 
 			const session = await startInlineWizardConversation({
@@ -55,6 +56,7 @@ describe('inlineWizardConversation - Session Overrides', () => {
 			expect(session.sessionCustomArgs).toBe('--custom-arg');
 			expect(session.sessionCustomEnvVars).toEqual({ CUSTOM_VAR: 'value' });
 			expect(session.sessionCustomModel).toBe('custom-model-id');
+			expect(session.sessionCustomEffort).toBe('high');
 		});
 	});
 
@@ -80,6 +82,7 @@ describe('inlineWizardConversation - Session Overrides', () => {
 				sessionCustomArgs: '--custom',
 				sessionCustomEnvVars: { TEST: 'true' },
 				sessionCustomModel: 'test-model',
+				sessionCustomEffort: 'high',
 			});
 
 			// Send a message
@@ -96,6 +99,7 @@ describe('inlineWizardConversation - Session Overrides', () => {
 			expect(spawnCall.sessionCustomArgs).toBe('--custom');
 			expect(spawnCall.sessionCustomEnvVars).toEqual({ TEST: 'true' });
 			expect(spawnCall.sessionCustomModel).toBe('test-model');
+			expect(spawnCall.sessionCustomEffort).toBe('high');
 
 			// Clean up
 			const exitCallback = mockMaestro.process.onExit.mock.calls[0][0];
@@ -137,6 +141,7 @@ describe('inlineWizardConversation - Session Overrides', () => {
 			expect(spawnCall.sessionCustomArgs).toBeUndefined();
 			expect(spawnCall.sessionCustomEnvVars).toBeUndefined();
 			expect(spawnCall.sessionCustomModel).toBeUndefined();
+			expect(spawnCall.sessionCustomEffort).toBeUndefined();
 
 			// Clean up
 			const exitCallback = mockMaestro.process.onExit.mock.calls[0][0];

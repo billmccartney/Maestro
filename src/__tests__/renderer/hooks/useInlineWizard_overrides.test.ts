@@ -101,6 +101,7 @@ describe('useInlineWizard - Session Overrides', () => {
 			customArgs: '--arg',
 			customEnvVars: { KEY: 'VAL' },
 			customModel: 'model-x',
+			customEffort: 'high',
 		};
 
 		await act(async () => {
@@ -129,6 +130,7 @@ describe('useInlineWizard - Session Overrides', () => {
 				sessionCustomArgs: '--arg',
 				sessionCustomEnvVars: { KEY: 'VAL' },
 				sessionCustomModel: 'model-x',
+				sessionCustomEffort: 'high',
 			})
 		);
 	});

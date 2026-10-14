@@ -58,6 +58,7 @@ describe('inlineWizardDocumentGeneration - Session Overrides', () => {
 			sessionCustomArgs: '--custom',
 			sessionCustomEnvVars: { TEST: 'true' },
 			sessionCustomModel: 'test-model',
+			sessionCustomEffort: 'high',
 		});
 
 		// Give it a moment to start spawning
@@ -71,6 +72,7 @@ describe('inlineWizardDocumentGeneration - Session Overrides', () => {
 		expect(spawnCall.sessionCustomArgs).toBe('--custom');
 		expect(spawnCall.sessionCustomEnvVars).toEqual({ TEST: 'true' });
 		expect(spawnCall.sessionCustomModel).toBe('test-model');
+		expect(spawnCall.sessionCustomEffort).toBe('high');
 
 		// Clean up
 		const spawnSessionId = spawnCall.sessionId;
@@ -118,6 +120,7 @@ describe('inlineWizardDocumentGeneration - Session Overrides', () => {
 		expect(spawnCall.sessionCustomArgs).toBeUndefined();
 		expect(spawnCall.sessionCustomEnvVars).toBeUndefined();
 		expect(spawnCall.sessionCustomModel).toBeUndefined();
+		expect(spawnCall.sessionCustomEffort).toBeUndefined();
 
 		// Clean up
 		const spawnSessionId = spawnCall.sessionId;

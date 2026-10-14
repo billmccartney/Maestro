@@ -36,6 +36,7 @@ import {
 import type { Session, Theme } from '../../types';
 import { WizardPill } from './WizardPill';
 import { WizardConfidenceGauge } from './WizardConfidenceGauge';
+import { TurnSettingPills } from '../ui/TurnSettingPills';
 import { WizardExitConfirmDialog } from './WizardExitConfirmDialog';
 import {
 	formatShortcutKeys,
@@ -150,6 +151,9 @@ export const WizardInputPanel = React.memo(function WizardInputPanel({
 }: WizardInputPanelProps) {
 	// State for exit confirmation dialog
 	const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+	// The frozen model/effort pair lives on the host tab's wizard state mirror.
+	const wizardTurnSettings = session.aiTabs.find((t) => t.id === session.activeTabId)?.wizardState;
 
 	// Auto-resize the textarea to fit its content, keeping the caret visible once
 	// the composer is tall enough to scroll.
@@ -387,6 +391,13 @@ export const WizardInputPanel = React.memo(function WizardInputPanel({
 							</div>
 
 							<div className="flex items-center gap-2">
+								{/* Model and effort the wizard froze at start. The composer's pills are
+								    gone while the wizard owns the input, so this is the only readout. */}
+								<TurnSettingPills
+									theme={theme}
+									model={wizardTurnSettings?.plannerModel}
+									effort={wizardTurnSettings?.plannerEffort}
+								/>
 								{/* Show Thinking toggle - when on, shows raw AI thinking instead of filler phrases */}
 								{!isTerminalMode && onToggleShowThinking && (
 									<button

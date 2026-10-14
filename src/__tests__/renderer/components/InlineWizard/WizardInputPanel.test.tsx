@@ -347,6 +347,26 @@ describe('WizardInputPanel', () => {
 		});
 	});
 
+	describe('planner model and effort readout', () => {
+		it('shows the frozen model and effort from the host tab wizard state', () => {
+			const session = createMockSession();
+			session.aiTabs[0].wizardState = {
+				...(session.wizardState as any),
+				plannerModel: 'opus',
+				plannerEffort: 'high',
+			};
+			render(<WizardInputPanel {...defaultProps} session={session} />);
+			expect(screen.getByTestId('turn-model-pill')).toHaveTextContent('opus');
+			expect(screen.getByTestId('turn-effort-pill')).toHaveTextContent('high');
+		});
+
+		it('renders no pills when the wizard runs on the provider default', () => {
+			render(<WizardInputPanel {...defaultProps} />);
+			expect(screen.queryByTestId('turn-model-pill')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('turn-effort-pill')).not.toBeInTheDocument();
+		});
+	});
+
 	describe('thinking toggle', () => {
 		it('renders thinking toggle when onToggleShowThinking is provided', () => {
 			render(<WizardInputPanel {...defaultProps} onToggleShowThinking={vi.fn()} />);

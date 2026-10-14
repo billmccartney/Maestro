@@ -96,6 +96,7 @@ export function useInlineWizardGenerationActions({
 					sessionCustomArgs: currentState.sessionCustomArgs,
 					sessionCustomEnvVars: currentState.sessionCustomEnvVars,
 					sessionCustomModel: currentState.sessionCustomModel,
+					sessionCustomEffort: currentState.sessionCustomEffort,
 					conductorProfile: currentState.conductorProfile,
 					callbacks: {
 						onStart: () => {

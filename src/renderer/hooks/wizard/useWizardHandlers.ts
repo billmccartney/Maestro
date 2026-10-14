@@ -463,6 +463,8 @@ export function useWizardHandlers(deps: UseWizardHandlersDeps): UseWizardHandler
 				subfolderPath: tabWizardState.subfolderPath ?? undefined,
 				agentSessionId: tabWizardState.agentSessionId ?? undefined,
 				subfolderName: tabWizardState.subfolderName ?? undefined,
+				plannerModel: tabWizardState.sessionCustomModel ?? undefined,
+				plannerEffort: tabWizardState.sessionCustomEffort ?? undefined,
 				showWizardThinking: latestWizardState?.showWizardThinking ?? false,
 				thinkingContent: latestWizardState?.thinkingContent ?? '',
 			};
@@ -860,7 +862,10 @@ export function useWizardHandlers(deps: UseWizardHandlersDeps): UseWizardHandler
 					customPath: currentSession.customPath,
 					customArgs: currentSession.customArgs,
 					customEnvVars: currentSession.customEnvVars,
-					customModel: currentSession.customModel,
+					// Model and effort are resolved the way a normal turn resolves them
+					// (tab override first, then the agent) and frozen for the whole run.
+					customModel: activeTab.customModel ?? currentSession.customModel,
+					customEffort: activeTab.customEffort ?? currentSession.customEffort,
 				}
 			);
 
@@ -952,7 +957,10 @@ export function useWizardHandlers(deps: UseWizardHandlersDeps): UseWizardHandler
 					customPath: currentSession.customPath,
 					customArgs: currentSession.customArgs,
 					customEnvVars: currentSession.customEnvVars,
-					customModel: currentSession.customModel,
+					// Model and effort are resolved the way a normal turn resolves them
+					// (tab override first, then the agent) and frozen for the whole run.
+					customModel: newTab.customModel ?? currentSession.customModel,
+					customEffort: newTab.customEffort ?? currentSession.customEffort,
 				}
 			);
 

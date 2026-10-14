@@ -1403,6 +1403,44 @@ describe('useWizardHandlers', () => {
 			);
 		});
 
+		it("freezes the tab's model and effort over the agent's", () => {
+			const session = createMockSession({
+				customModel: 'agent-model',
+				customEffort: 'low',
+				aiTabs: [createMockTab({ customModel: 'tab-model', customEffort: 'high' })],
+			});
+			useSessionStore.setState({ sessions: [session], activeSessionId: 'session-1' });
+
+			const deps = createMockDeps();
+			const { result } = renderHook(() => useWizardHandlers(deps));
+
+			act(() => {
+				result.current.handleWizardCommand('');
+			});
+
+			const overrides = (deps.inlineWizardContext.startWizard as any).mock.calls[0][10];
+			expect(overrides).toEqual(
+				expect.objectContaining({ customModel: 'tab-model', customEffort: 'high' })
+			);
+		});
+
+		it("falls back to the agent's model and effort when the tab has none", () => {
+			const session = createMockSession({ customModel: 'agent-model', customEffort: 'low' });
+			useSessionStore.setState({ sessions: [session], activeSessionId: 'session-1' });
+
+			const deps = createMockDeps();
+			const { result } = renderHook(() => useWizardHandlers(deps));
+
+			act(() => {
+				result.current.handleWizardCommand('');
+			});
+
+			const overrides = (deps.inlineWizardContext.startWizard as any).mock.calls[0][10];
+			expect(overrides).toEqual(
+				expect.objectContaining({ customModel: 'agent-model', customEffort: 'low' })
+			);
+		});
+
 		it('renames tab to "Wizard"', () => {
 			const session = createMockSession();
 			useSessionStore.setState({ sessions: [session], activeSessionId: 'session-1' });

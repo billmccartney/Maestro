@@ -200,6 +200,14 @@ export interface SessionWizardState {
 	agentSessionId?: string;
 	/** Subfolder name where documents were saved (e.g., "Maestro-Marketing") - used for tab naming */
 	subfolderName?: string;
+	/**
+	 * Model and effort every turn of this wizard spawns with, frozen when the
+	 * wizard started: the host tab's own override, else the agent's. Undefined
+	 * means the provider default. This is a read-only mirror for the toolbar
+	 * readout; the spawn path reads the inline wizard store, not this field.
+	 */
+	plannerModel?: string;
+	plannerEffort?: string;
 
 	// Thinking display state
 	/** Whether to show AI thinking content instead of filler phrases */

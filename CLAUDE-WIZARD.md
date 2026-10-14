@@ -233,6 +233,16 @@ The Inline Wizard creates Auto Run Playbook documents from within an existing ag
 - On completion, tab renamed to the generated subfolder name
 - Final AI message summarizes generated docs and next steps
 - Same `agentSessionId` preserved for context continuity
+- **Model and effort are frozen at `/wizard` time**, resolved the way a normal
+  turn resolves them: the host tab's pill override first, then the agent's
+  `customModel` / `customEffort`, then the provider default. Both spawn paths
+  (the conversation turns in `inlineWizardConversation.ts` and document
+  generation in `inlineWizardDocumentGeneration.ts`) receive the same pair as
+  `sessionCustomModel` / `sessionCustomEffort`, so the whole run uses one
+  setting. The composer's pills are gone while the wizard owns the input, so
+  `WizardInputPanel` draws the frozen pair with `<TurnSettingPills>` from the
+  `plannerModel` / `plannerEffort` mirror on `AITab.wizardState`. Changing the
+  pills mid-wizard has no effect until the wizard is restarted
 - **Escape is a ladder, not a single action.** Mid-turn it stops the running turn
   and stays in the wizard (same as a regular AI tab); idle with user messages it
   opens the exit confirmation; idle with none it leaves wizard mode. The mid-turn

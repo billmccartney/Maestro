@@ -190,6 +190,8 @@ export interface DocumentGenerationConfig {
 	sessionCustomEnvVars?: Record<string, string>;
 	/** Custom model ID (overrides agent-level) */
 	sessionCustomModel?: string;
+	/** Custom effort/reasoning level (overrides agent-level) */
+	sessionCustomEffort?: string;
 }
 
 /**
@@ -1160,6 +1162,7 @@ export async function generateInlineDocuments(
 						sessionCustomArgs: config.sessionCustomArgs,
 						sessionCustomEnvVars: config.sessionCustomEnvVars,
 						sessionCustomModel: config.sessionCustomModel,
+						sessionCustomEffort: config.sessionCustomEffort,
 					})
 					.then(() => {
 						logger.debug('Document generation agent spawned successfully', '[InlineWizardDocGen]', {

@@ -70,6 +70,7 @@ export interface InlineWizardSessionOverrides {
 	customArgs?: string;
 	customEnvVars?: Record<string, string>;
 	customModel?: string;
+	customEffort?: string;
 }
 
 /**
@@ -147,6 +148,8 @@ export interface InlineWizardState {
 	sessionCustomEnvVars?: Record<string, string>;
 	/** Custom model ID */
 	sessionCustomModel?: string;
+	/** Custom effort/reasoning level */
+	sessionCustomEffort?: string;
 	/** Conductor profile (user's About Me from settings) */
 	conductorProfile?: string;
 	/** History file path for task recall (fetched once during startWizard) */

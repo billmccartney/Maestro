@@ -151,6 +151,8 @@ export interface InlineWizardConversationConfig {
 	sessionCustomEnvVars?: Record<string, string>;
 	/** Custom model ID (overrides agent-level) */
 	sessionCustomModel?: string;
+	/** Custom effort/reasoning level (overrides agent-level) */
+	sessionCustomEffort?: string;
 }
 
 /**
@@ -183,6 +185,8 @@ export interface InlineWizardConversationSession {
 	sessionCustomEnvVars?: Record<string, string>;
 	/** Custom model ID */
 	sessionCustomModel?: string;
+	/** Custom effort/reasoning level */
+	sessionCustomEffort?: string;
 }
 
 /**
@@ -339,6 +343,7 @@ export function startInlineWizardConversation(
 		sessionCustomArgs: config.sessionCustomArgs,
 		sessionCustomEnvVars: config.sessionCustomEnvVars,
 		sessionCustomModel: config.sessionCustomModel,
+		sessionCustomEffort: config.sessionCustomEffort,
 	};
 }
 
@@ -870,6 +875,7 @@ export async function sendWizardMessage(
 					sessionCustomArgs: session.sessionCustomArgs,
 					sessionCustomEnvVars: session.sessionCustomEnvVars,
 					sessionCustomModel: session.sessionCustomModel,
+					sessionCustomEffort: session.sessionCustomEffort,
 				} as ProcessConfig)
 				.then(() => {
 					callbacks?.onReceiving?.();

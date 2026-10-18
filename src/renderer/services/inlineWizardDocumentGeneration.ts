@@ -18,6 +18,8 @@ import type { ExistingDocument } from '../utils/existingDocsDetector';
 import { logger } from '../utils/logger';
 import { substituteTemplateVariables, type TemplateContext } from '../utils/templateVariables';
 import { extractGrokTextFromJsonl, getGrokTextDelta } from '../utils/grokWizard';
+import { createIdleWatchdog } from '../../shared/idleWatchdog';
+import { subscribeToAgentLiveness } from './agentLiveness';
 
 let cachedWizardDocumentGenerationPrompt: string | null = null;
 let cachedWizardInlineIterateGenerationPrompt: string | null = null;
@@ -60,9 +62,10 @@ function getWizardInlineIterateGenerationPrompt(): string {
 import { deriveSshRemoteId } from '../components/Wizard/services/phaseGenerator';
 
 /**
- * Generation timeout in milliseconds (20 minutes).
+ * How long a generation run may go SILENT before it is killed (20 minutes).
+ * An idle budget, not a duration: any proof of life restarts it.
  */
-const GENERATION_TIMEOUT = 1200000;
+const GENERATION_IDLE_TIMEOUT_MS = 1200000;
 
 /**
  * Extract displayable text from streaming JSON chunks.
@@ -977,13 +980,13 @@ export async function generateInlineDocuments(
 				let fileWatcherCleanup: (() => void) | undefined;
 				let pollIntervalId: ReturnType<typeof setInterval> | undefined;
 
-				/**
-				 * Reset the inactivity timeout - called on any activity
-				 */
-				const resetTimeout = () => {
-					clearTimeout(timeoutId);
-
-					timeoutId = setTimeout(() => {
+				// Silence budget for the run, re-armed by every proof of life
+				// (data, thinking chunks, tool executions, usage, file activity).
+				// A stream-json run emits `data` only with its final result, so the
+				// old data-only timer was a hard 20-minute deadline on long turns.
+				const watchdog = createIdleWatchdog({
+					idleMs: GENERATION_IDLE_TIMEOUT_MS,
+					onIdle: () => {
 						logger.error('[InlineWizardDocGen] TIMEOUT fired! Session:', undefined, sessionId);
 						cleanupAll();
 						window.maestro.process
@@ -1000,26 +1003,13 @@ export async function generateInlineDocuments(
 							rawOutput: outputBuffer,
 							error: 'Generation timed out after 20 minutes of inactivity. Please try again.',
 						});
-					}, GENERATION_TIMEOUT);
-				};
-
-				// Set up timeout (20 minutes for complex generation)
-				let timeoutId = setTimeout(() => {
-					logger.error('[InlineWizardDocGen] TIMEOUT fired! Session:', undefined, sessionId);
-					cleanupAll();
-					window.maestro.process
-						.kill(sessionId)
-						.catch((err) =>
-							logger.warn('[InlineWizardDocGen] Failed to kill session on timeout:', undefined, err)
-						);
-					resolve({
-						success: false,
-						rawOutput: outputBuffer,
-						error: 'Generation timed out after 20 minutes. Please try again.',
-					});
-				}, GENERATION_TIMEOUT);
+					},
+				});
+				const livenessCleanup = subscribeToAgentLiveness(sessionId, watchdog.touch);
 
 				function cleanupAll() {
+					watchdog.disarm();
+					livenessCleanup();
 					if (dataListenerCleanup) {
 						dataListenerCleanup();
 						dataListenerCleanup = undefined;
@@ -1063,7 +1053,7 @@ export async function generateInlineDocuments(
 									data.filename,
 									data.eventType,
 								]);
-								resetTimeout();
+								watchdog.touch();
 
 								if (data.filename && (data.eventType === 'rename' || data.eventType === 'change')) {
 									documentEmitter.tryEmitFile(data.filename).catch((err) => {
@@ -1103,7 +1093,6 @@ export async function generateInlineDocuments(
 					(receivedSessionId: string, data: string) => {
 						if (receivedSessionId === sessionId) {
 							outputBuffer += data;
-							resetTimeout();
 							callbacks?.onChunk?.(data);
 						}
 					}
@@ -1113,7 +1102,6 @@ export async function generateInlineDocuments(
 				exitListenerCleanup = window.maestro.process.onExit(
 					(receivedSessionId: string, code: number) => {
 						if (receivedSessionId === sessionId) {
-							clearTimeout(timeoutId);
 							cleanupAll();
 
 							logger.info('[InlineWizardDocGen] Agent exited with code:', undefined, code);
@@ -1171,7 +1159,6 @@ export async function generateInlineDocuments(
 					})
 					.catch((error: Error) => {
 						cleanupAll();
-						clearTimeout(timeoutId);
 						resolve({
 							success: false,
 							rawOutput: outputBuffer,

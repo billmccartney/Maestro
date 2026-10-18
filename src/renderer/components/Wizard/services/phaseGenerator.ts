@@ -172,6 +172,8 @@ interface ParsedDocument {
 import { PLAYBOOKS_DIR } from '../../../../shared/maestro-paths';
 import { logger } from '../../../utils/logger';
 import { createPlaybookDocumentEmitter } from '../../../services/inlineWizardDocumentGeneration';
+import { subscribeToAgentLiveness } from '../../../services/agentLiveness';
+import { createIdleWatchdog } from '../../../../shared/idleWatchdog';
 
 /**
  * Sanitize a filename to prevent path traversal attacks.
@@ -199,9 +201,11 @@ export function sanitizeFilename(filename: string): string {
 }
 
 /**
- * Generation timeout in milliseconds (20 minutes - large codebases need time for exploration)
+ * How long a generation run may go SILENT before it is killed (20 minutes).
+ * This is an idle budget, not a duration: every thinking chunk, tool call,
+ * usage report, data chunk, or file write restarts it (see `createIdleWatchdog`).
  */
-const GENERATION_TIMEOUT = 1200000;
+const GENERATION_IDLE_TIMEOUT_MS = 1200000;
 
 /**
  * Debug log entry for wizard troubleshooting
@@ -585,6 +589,8 @@ class PhaseGenerator {
 	private exitListenerCleanup?: () => void;
 	private currentWatchPath?: string;
 	private pollIntervalId?: ReturnType<typeof setInterval>;
+	/** Disarms the run's idle watchdog and drops its liveness listeners. */
+	private stopIdleWatchdog?: () => void;
 
 	/**
 	 * Generate Auto Run documents based on the project discovery conversation
@@ -852,7 +858,7 @@ class PhaseGenerator {
 			agentType: config.agentType,
 			cwd: config.directoryPath,
 			promptLength: prompt.length,
-			timeoutMs: GENERATION_TIMEOUT,
+			idleTimeoutMs: GENERATION_IDLE_TIMEOUT_MS,
 		});
 
 		wizardDebugLogger.log('spawn', 'Starting agent run', {
@@ -860,26 +866,26 @@ class PhaseGenerator {
 			agentType: config.agentType,
 			cwd: config.directoryPath,
 			promptLength: prompt.length,
-			timeoutMs: GENERATION_TIMEOUT,
+			idleTimeoutMs: GENERATION_IDLE_TIMEOUT_MS,
 			command: agent.command,
 			args: agent.args,
 		});
 
 		return new Promise<GenerationResult>((resolve) => {
-			let timeoutId: ReturnType<typeof setTimeout>;
 			let lastDataTime = Date.now();
 			let dataChunks = 0;
 			let fileWatcherCleanup: (() => void) | undefined;
 
 			/**
-			 * Reset the inactivity timeout - called on any activity (data chunk or file change)
-			 * This ensures the timeout only fires after 5 minutes of NO activity
+			 * Silence budget for the run. Re-armed by every proof of life: data,
+			 * thinking chunks, tool executions, usage reports (via
+			 * subscribeToAgentLiveness) and file activity in the Auto Run folder.
+			 * A stream-json run emits `data` only with its final result, so arming
+			 * on data alone made a long thinking turn hit a hard 20-minute deadline.
 			 */
-			const resetTimeout = () => {
-				clearTimeout(timeoutId);
-				lastDataTime = Date.now();
-
-				timeoutId = setTimeout(() => {
+			const watchdog = createIdleWatchdog({
+				idleMs: GENERATION_IDLE_TIMEOUT_MS,
+				onIdle: () => {
 					const elapsed = Date.now() - startTime;
 					const timeSinceLastActivity = Date.now() - lastDataTime;
 					logger.error('[PhaseGenerator] TIMEOUT after', undefined, [elapsed, 'ms total']);
@@ -917,7 +923,20 @@ class PhaseGenerator {
 						error: 'Generation timed out after 20 minutes of inactivity. Please try again.',
 						rawOutput: this.outputBuffer,
 					});
-				}, GENERATION_TIMEOUT);
+				},
+			});
+			const touch = () => {
+				lastDataTime = Date.now();
+				watchdog.touch();
+			};
+			const livenessCleanup = subscribeToAgentLiveness(sessionId, () => {
+				touch();
+				callbacks?.onActivity?.();
+			});
+			// cleanup() runs this on every exit path, including abort()
+			this.stopIdleWatchdog = () => {
+				watchdog.disarm();
+				livenessCleanup();
 			};
 
 			// Set up data listener
@@ -935,9 +954,7 @@ class PhaseGenerator {
 						preview: data.slice(0, 200),
 					});
 
-					// Reset timeout on activity - any data chunk means the agent is working
-					resetTimeout();
-					callbacks?.onActivity?.();
+					// The watchdog and onActivity are fed by subscribeToAgentLiveness
 
 					// Log progress every 10 chunks
 					if (dataChunks % 10 === 0) {
@@ -954,7 +971,6 @@ class PhaseGenerator {
 			// Set up exit listener
 			this.exitListenerCleanup = window.maestro.process.onExit((sid: string, code: number) => {
 				if (sid === sessionId) {
-					clearTimeout(timeoutId);
 					this.cleanup();
 					if (fileWatcherCleanup) {
 						fileWatcherCleanup();
@@ -1073,8 +1089,8 @@ class PhaseGenerator {
 									folderPath: data.folderPath,
 								});
 
-								// Reset timeout on file activity
-								resetTimeout();
+								// File activity is proof of life too
+								touch();
 								callbacks?.onActivity?.();
 
 								// Route the change through the shared emitter, which reads
@@ -1113,9 +1129,9 @@ class PhaseGenerator {
 				});
 			}, POLL_INTERVAL_MS);
 
-			// Initialize the timeout
-			resetTimeout();
-			wizardDebugLogger.log('info', 'Timeout initialized', { timeoutMs: GENERATION_TIMEOUT });
+			wizardDebugLogger.log('info', 'Idle watchdog armed', {
+				idleTimeoutMs: GENERATION_IDLE_TIMEOUT_MS,
+			});
 
 			// Spawn the agent using the secure IPC channel
 			logger.info('[PhaseGenerator] Spawning agent...');
@@ -1174,7 +1190,6 @@ class PhaseGenerator {
 						errorMessage: error.message,
 						errorStack: error.stack,
 					});
-					clearTimeout(timeoutId);
 					this.cleanup();
 					if (fileWatcherCleanup) {
 						fileWatcherCleanup();
@@ -1248,6 +1263,10 @@ class PhaseGenerator {
 	 * Clean up listeners and file watcher
 	 */
 	private cleanup(): void {
+		if (this.stopIdleWatchdog) {
+			this.stopIdleWatchdog();
+			this.stopIdleWatchdog = undefined;
+		}
 		// Stop the periodic disk-poll backstop for document streaming
 		if (this.pollIntervalId !== undefined) {
 			clearInterval(this.pollIntervalId);
